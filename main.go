@@ -46,75 +46,46 @@ func onConnectHandler(c mqtt.Client) {
 }
 
 const jokeApiUrl = "https://v2.jokeapi.dev/joke/Any?blacklistFlags=racist,sexist"
-
-// const apiUrl = "https://checkiday.com/api/3/?d"
-// const apiUrl = "https://api.jokes.one/jod"
-// const apiUrl = "http://quotes.rest/qod.json"
-// const apiUrl = "https://uselessfacts.jsph.pl/random.json?language=en"
+const checkidayApiUrl = "https://checkiday.com/api/3/?d"
+const jodApiUrl = "https://api.jokes.one/jod"
+const qodApiUrl = "http://quotes.rest/qod.json"
+const factApiUrl = "https://uselessfacts.jsph.pl/random.json?language=en"
 
 const jokeApiTempl = "{{ if eq .type \"twopart\" }}{{ .setup }}\n{{ .delivery }}{{ else }}{{ .joke }}{{end}}"
+const checkidayTempl = "{{ range .holidays }}{{ .name }}\n{{ end }}"
+const jodTempl = "{{ range .contents.jokes }}{{ .joke.text }}{{ end }}"
+const qodTempl = "{{ range .contents.quotes }}{{ .quote }}{{ end }}"
+const factTempl = "{{ .text }}"
 
-// const templ = "{{ range .holidays }}{{ .name }}\n{{ end }}"
-// const templ = "{{ range .contents.jokes }}{{ .joke.text }}{{ end }}"
-// const templ = "{{ range .contents.quotes }}{{ .quote }}{{ end }}"
-// const templ = "{{ .text }}"
+func genHandler(apiUrl, templ string) func(m gowon.Message) (string, error) {
+	return func(m gowon.Message) (string, error) {
+		res, err := http.Get(apiUrl)
+		if err != nil {
+			return "", err
+		}
 
-// func main() {
-//     res, err := http.Get(apiUrl)
-//     if err != nil {
-//         log.Fatal(err)
-//     }
+		defer res.Body.Close()
 
-//     defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return "", err
+		}
 
-//     body, err := ioutil.ReadAll(res.Body)
-//     if err != nil {
-//         log.Fatal(err)
-//     }
+		jm := map[string]interface{}{}
 
-//     m := map[string]interface{}{}
+		if err := json.Unmarshal([]byte(body), &jm); err != nil {
+			return "", err
+		}
 
-//     if err := json.Unmarshal([]byte(body), &m); err != nil {
-//         log.Fatal(err)
-//     }
+		t := template.Must(template.New("").Parse(templ))
 
-//     t := template.Must(template.New("").Parse(templ))
+		out := new(bytes.Buffer)
+		if err := t.Execute(out, jm); err != nil {
+			return "", err
+		}
 
-//     out := new(bytes.Buffer)
-//     if err := t.Execute(out, m); err != nil {
-//         log.Fatal(err)
-//     }
-
-//     fmt.Println(html.UnescapeString(out.String()))
-// }
-
-func jokeHandler(m gowon.Message) (string, error) {
-	res, err := http.Get(jokeApiUrl)
-	if err != nil {
-		return "", err
+		return html.UnescapeString(out.String()), nil
 	}
-
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return "", err
-	}
-
-	jm := map[string]interface{}{}
-
-	if err := json.Unmarshal([]byte(body), &jm); err != nil {
-		return "", err
-	}
-
-	t := template.Must(template.New("").Parse(jokeApiTempl))
-
-	out := new(bytes.Buffer)
-	if err := t.Execute(out, jm); err != nil {
-		return "", err
-	}
-
-	return html.UnescapeString(out.String()), nil
 }
 
 func main() {
@@ -138,7 +109,11 @@ func main() {
 	mqttOpts.OnConnect = onConnectHandler
 
 	mr := gowon.NewMessageRouter()
-	mr.AddCommand("joke", jokeHandler)
+	mr.AddCommand("joke", genHandler(jokeApiUrl, jokeApiTempl))
+	mr.AddCommand("days", genHandler(checkidayApiUrl, checkidayTempl))
+	mr.AddCommand("jod", genHandler(jodApiUrl, jodTempl))
+	mr.AddCommand("qod", genHandler(qodApiUrl, qodTempl))
+	mr.AddCommand("fact", genHandler(factApiUrl, factTempl))
 	mr.Subscribe(mqttOpts, moduleName)
 
 	log.Print("connecting to broker")
