@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -59,14 +58,8 @@ const factTempl = "{{ .text }}"
 
 func genHandler(apiUrl, templ string) func(m gowon.Message) (string, error) {
 	return func(m gowon.Message) (string, error) {
-		res, err := http.Get(apiUrl)
-		if err != nil {
-			return "", err
-		}
-
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
+		client := &http.Client{}
+		body, err := downloadURL(apiUrl, client)
 		if err != nil {
 			return "", err
 		}
