@@ -77,6 +77,56 @@ func TestDownloadURL(t *testing.T) {
 			assert.ErrorContains(t, err, tc.errMsg)
 		}
 
-		assert.Equal(t, got, tc.body)
+		assert.Equal(t, tc.body, got)
+	}
+}
+
+func TestTemplateParse(t *testing.T) {
+	cases := []struct {
+		name        string
+		text        string
+		templateMap map[string]interface{}
+		expected    string
+	}{
+		{
+			name:        "empty text, empty map",
+			text:        "",
+			templateMap: map[string]interface{}{},
+			expected:    "",
+		},
+		{
+			name:        "no tokens, empty map",
+			text:        "text",
+			templateMap: map[string]interface{}{},
+			expected:    "text",
+		},
+		{
+			name: "token, token in map",
+			text: "{{ .a }}",
+			templateMap: map[string]interface{}{
+				"a": 1,
+			},
+			expected: "1",
+		},
+		{
+			name:        "token, empty map",
+			text:        "{{ .a }}",
+			templateMap: map[string]interface{}{},
+			expected:    "<no value>",
+		},
+		{
+			name: "tokens, one in map",
+			text: "{{ .a }} {{ .b }}",
+			templateMap: map[string]interface{}{
+				"a": 1,
+			},
+			expected: "1 <no value>",
+		},
+	}
+	for _, tc := range cases {
+		out, err := templateParse(tc.text, tc.templateMap)
+
+		assert.Nil(t, err)
+		assert.Equal(t, tc.expected, out)
 	}
 }

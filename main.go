@@ -1,16 +1,13 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"html"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"text/template"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -70,14 +67,12 @@ func genHandler(apiUrl, templ string) func(m gowon.Message) (string, error) {
 			return "", err
 		}
 
-		t := template.Must(template.New("").Parse(templ))
-
-		out := new(bytes.Buffer)
-		if err := t.Execute(out, jm); err != nil {
+		templated, err := templateParse(templ, jm)
+		if err != nil {
 			return "", err
 		}
 
-		return html.UnescapeString(out.String()), nil
+		return templated, nil
 	}
 }
 
