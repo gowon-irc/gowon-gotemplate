@@ -6,6 +6,7 @@ import (
 	"html"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"text/template"
 )
 
@@ -56,5 +57,5 @@ func handle(apiUrl string, templ string, client *http.Client) (string, error) {
 		return "", err
 	}
 
-	return templated, nil
+	return strings.TrimSpace(templated), nil
 }

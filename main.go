@@ -12,10 +12,20 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gowon-irc/go-gowon"
 	"github.com/jessevdk/go-flags"
+	"gopkg.in/yaml.v2"
 )
 
 type Options struct {
-	Broker string `short:"b" long:"broker" env:"GOWON_BROKER" default:"localhost:1883" description:"mqtt broker"`
+	Broker   string `short:"b" long:"broker" env:"GOWON_BROKER" default:"localhost:1883" description:"mqtt broker"`
+	ConfigFn string `short:"c" long:"config" env:"GOWON_GOTEMPLATE_CONFIG" default:"config.yaml" description:"config file"`
+}
+
+type Config struct {
+	Commands []struct {
+		Command  string `yaml:"command"`
+		ApiUrl   string `yaml:"apiUrl"`
+		Template string `yaml:"template"`
+	} `yaml:"commands"`
 }
 
 const (
@@ -40,18 +50,6 @@ func onConnectHandler(c mqtt.Client) {
 	log.Println("connected to broker")
 }
 
-const jokeApiUrl = "https://v2.jokeapi.dev/joke/Any?blacklistFlags=racist,sexist"
-const checkidayApiUrl = "https://checkiday.com/api/3/?d"
-const jodApiUrl = "https://api.jokes.one/jod"
-const qodApiUrl = "http://quotes.rest/qod.json"
-const factApiUrl = "https://uselessfacts.jsph.pl/random.json?language=en"
-
-const jokeApiTempl = "{{ if eq .type \"twopart\" }}{{ .setup }}\n{{ .delivery }}{{ else }}{{ .joke }}{{end}}"
-const checkidayTempl = "{{ range .holidays }}{{ .name }}\n{{ end }}"
-const jodTempl = "{{ range .contents.jokes }}{{ .joke.text }}{{ end }}"
-const qodTempl = "{{ range .contents.quotes }}{{ .quote }}{{ end }}"
-const factTempl = "{{ .text }}"
-
 func genHandler(apiUrl, templ string, client *http.Client) func(m gowon.Message) (string, error) {
 	return func(m gowon.Message) (string, error) {
 		return handle(apiUrl, templ, client)
@@ -63,6 +61,17 @@ func main() {
 
 	opts := Options{}
 	if _, err := flags.Parse(&opts); err != nil {
+		log.Fatal(err)
+	}
+
+	cf, err := os.ReadFile(opts.ConfigFn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	cfg := Config{}
+
+	if err := yaml.Unmarshal(cf, &cfg); err != nil {
 		log.Fatal(err)
 	}
 
@@ -78,14 +87,14 @@ func main() {
 	mqttOpts.OnReconnecting = onRecconnectingHandler
 	mqttOpts.OnConnect = onConnectHandler
 
+	mr := gowon.NewMessageRouter()
+
 	client := &http.Client{}
 
-	mr := gowon.NewMessageRouter()
-	mr.AddCommand("joke", genHandler(jokeApiUrl, jokeApiTempl, client))
-	mr.AddCommand("days", genHandler(checkidayApiUrl, checkidayTempl, client))
-	mr.AddCommand("jod", genHandler(jodApiUrl, jodTempl, client))
-	mr.AddCommand("qod", genHandler(qodApiUrl, qodTempl, client))
-	mr.AddCommand("fact", genHandler(factApiUrl, factTempl, client))
+	for _, c := range cfg.Commands {
+		mr.AddCommand(c.Command, genHandler(c.ApiUrl, c.Template, client))
+	}
+
 	mr.Subscribe(mqttOpts, moduleName)
 
 	log.Print("connecting to broker")
