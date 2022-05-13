@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"html"
 	"io/ioutil"
 	"net/http"
@@ -36,4 +37,24 @@ func templateParse(text string, m map[string]interface{}) (string, error) {
 	}
 
 	return html.UnescapeString(out.String()), nil
+}
+
+func handle(apiUrl string, templ string, client *http.Client) (string, error) {
+	body, err := downloadURL(apiUrl, client)
+	if err != nil {
+		return "", err
+	}
+
+	jm := map[string]interface{}{}
+
+	if err := json.Unmarshal([]byte(body), &jm); err != nil {
+		return "", err
+	}
+
+	templated, err := templateParse(templ, jm)
+	if err != nil {
+		return "", err
+	}
+
+	return templated, nil
 }

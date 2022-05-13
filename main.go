@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -53,26 +52,9 @@ const jodTempl = "{{ range .contents.jokes }}{{ .joke.text }}{{ end }}"
 const qodTempl = "{{ range .contents.quotes }}{{ .quote }}{{ end }}"
 const factTempl = "{{ .text }}"
 
-func genHandler(apiUrl, templ string) func(m gowon.Message) (string, error) {
+func genHandler(apiUrl, templ string, client *http.Client) func(m gowon.Message) (string, error) {
 	return func(m gowon.Message) (string, error) {
-		client := &http.Client{}
-		body, err := downloadURL(apiUrl, client)
-		if err != nil {
-			return "", err
-		}
-
-		jm := map[string]interface{}{}
-
-		if err := json.Unmarshal([]byte(body), &jm); err != nil {
-			return "", err
-		}
-
-		templated, err := templateParse(templ, jm)
-		if err != nil {
-			return "", err
-		}
-
-		return templated, nil
+		return handle(apiUrl, templ, client)
 	}
 }
 
@@ -96,12 +78,14 @@ func main() {
 	mqttOpts.OnReconnecting = onRecconnectingHandler
 	mqttOpts.OnConnect = onConnectHandler
 
+	client := &http.Client{}
+
 	mr := gowon.NewMessageRouter()
-	mr.AddCommand("joke", genHandler(jokeApiUrl, jokeApiTempl))
-	mr.AddCommand("days", genHandler(checkidayApiUrl, checkidayTempl))
-	mr.AddCommand("jod", genHandler(jodApiUrl, jodTempl))
-	mr.AddCommand("qod", genHandler(qodApiUrl, qodTempl))
-	mr.AddCommand("fact", genHandler(factApiUrl, factTempl))
+	mr.AddCommand("joke", genHandler(jokeApiUrl, jokeApiTempl, client))
+	mr.AddCommand("days", genHandler(checkidayApiUrl, checkidayTempl, client))
+	mr.AddCommand("jod", genHandler(jodApiUrl, jodTempl, client))
+	mr.AddCommand("qod", genHandler(qodApiUrl, qodTempl, client))
+	mr.AddCommand("fact", genHandler(factApiUrl, factTempl, client))
 	mr.Subscribe(mqttOpts, moduleName)
 
 	log.Print("connecting to broker")
