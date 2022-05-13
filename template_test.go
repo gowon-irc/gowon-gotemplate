@@ -123,10 +123,56 @@ func TestTemplateParse(t *testing.T) {
 			expected: "1 <no value>",
 		},
 	}
+
 	for _, tc := range cases {
 		out, err := templateParse(tc.text, tc.templateMap)
 
 		assert.Nil(t, err)
 		assert.Equal(t, tc.expected, out)
+	}
+}
+
+func TestHandle(t *testing.T) {
+	cases := []struct {
+		name         string
+		bodyFile     string
+		statusCode   int
+		templateFile string
+		expected     string
+		errMsg       string
+	}{
+		{
+			name:         "valid json, valid template",
+			bodyFile:     "abc.json",
+			statusCode:   200,
+			templateFile: "abc.tmpl",
+			expected:     "1 2 3",
+			errMsg:       "",
+		},
+		{
+			name:         "invalid json",
+			bodyFile:     "def.txt",
+			statusCode:   200,
+			templateFile: "def.tmpl",
+			expected:     "",
+			errMsg:       "invalid character 'd' looking for beginning of value",
+		},
+	}
+
+	for _, tc := range cases {
+		body := openTestFile(t, "TestHandle", tc.bodyFile)
+		client := NewTestClient(tc.statusCode, string(body))
+
+		templ := openTestFile(t, "TestHandle", tc.templateFile)
+
+		got, err := handle("", string(templ), client)
+
+		if tc.errMsg == "" {
+			assert.Nil(t, err)
+		} else {
+			assert.ErrorContains(t, err, tc.errMsg)
+		}
+
+		assert.Equal(t, tc.expected, got)
 	}
 }
