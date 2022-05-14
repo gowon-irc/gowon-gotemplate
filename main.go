@@ -12,20 +12,11 @@ import (
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/gowon-irc/go-gowon"
 	"github.com/jessevdk/go-flags"
-	"gopkg.in/yaml.v2"
 )
 
 type Options struct {
 	Broker   string `short:"b" long:"broker" env:"GOWON_BROKER" default:"localhost:1883" description:"mqtt broker"`
 	ConfigFn string `short:"c" long:"config" env:"GOWON_GOTEMPLATE_CONFIG" default:"config.yaml" description:"config file"`
-}
-
-type Config struct {
-	Commands []struct {
-		Command  string `yaml:"command"`
-		ApiUrl   string `yaml:"apiUrl"`
-		Template string `yaml:"template"`
-	} `yaml:"commands"`
 }
 
 const (
@@ -69,10 +60,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cfg := Config{}
-
-	if err := yaml.Unmarshal(cf, &cfg); err != nil {
-		log.Fatal(err)
+	cfg, err := parseConfig(cf)
+	if err != nil {
+		log.Fatalf("error validating config: %s", err)
 	}
 
 	mqttOpts := mqtt.NewClientOptions()

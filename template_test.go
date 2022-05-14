@@ -66,18 +66,20 @@ func TestDownloadURL(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		body := openTestFile(t, "TestDownloadUrl", tc.testFile)
-		client := NewTestClient(tc.statusCode, string(body))
+		t.Run(tc.name, func(t *testing.T) {
+			body := openTestFile(t, "TestDownloadUrl", tc.testFile)
+			client := NewTestClient(tc.statusCode, string(body))
 
-		got, err := downloadURL("", client)
+			got, err := downloadURL("", client)
 
-		if tc.errMsg == "" {
-			assert.Nil(t, err)
-		} else {
-			assert.ErrorContains(t, err, tc.errMsg)
-		}
+			if tc.errMsg == "" {
+				assert.Nil(t, err)
+			} else {
+				assert.ErrorContains(t, err, tc.errMsg)
+			}
 
-		assert.Equal(t, tc.body, got)
+			assert.Equal(t, tc.body, got)
+		})
 	}
 }
 
@@ -125,10 +127,12 @@ func TestTemplateParse(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		out, err := templateParse(tc.text, tc.templateMap)
+		t.Run(tc.name, func(t *testing.T) {
+			out, err := templateParse(tc.text, tc.templateMap)
 
-		assert.Nil(t, err)
-		assert.Equal(t, tc.expected, out)
+			assert.Nil(t, err)
+			assert.Equal(t, tc.expected, out)
+		})
 	}
 }
 
@@ -160,19 +164,21 @@ func TestHandle(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		body := openTestFile(t, "TestHandle", tc.bodyFile)
-		client := NewTestClient(tc.statusCode, string(body))
+		t.Run(tc.name, func(t *testing.T) {
+			body := openTestFile(t, "TestHandle", tc.bodyFile)
+			client := NewTestClient(tc.statusCode, string(body))
 
-		templ := openTestFile(t, "TestHandle", tc.templateFile)
+			templ := openTestFile(t, "TestHandle", tc.templateFile)
 
-		got, err := handle("", string(templ), client)
+			got, err := handle("", string(templ), client)
 
-		if tc.errMsg == "" {
-			assert.Nil(t, err)
-		} else {
-			assert.ErrorContains(t, err, tc.errMsg)
-		}
+			if tc.errMsg == "" {
+				assert.Nil(t, err)
+			} else {
+				assert.ErrorContains(t, err, tc.errMsg)
+			}
 
-		assert.Equal(t, tc.expected, got)
+			assert.Equal(t, tc.expected, got)
+		})
 	}
 }
