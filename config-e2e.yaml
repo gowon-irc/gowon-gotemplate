@@ -1,0 +1,5 @@
+---
+commands:
+  - command: demo1
+    apiUrl: "http://echo.jsontest.com/a/one/b/two"
+    template: "{{ .a }} {{ .b }}"
