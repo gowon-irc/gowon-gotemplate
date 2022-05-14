@@ -83,6 +83,7 @@ func main() {
 
 	for _, c := range cfg.Commands {
 		mr.AddCommand(c.Command, genHandler(c.ApiUrl, c.Template, client))
+		log.Println(fmt.Sprintf("registered command: %s", c.Command))
 	}
 
 	mr.Subscribe(mqttOpts, moduleName)

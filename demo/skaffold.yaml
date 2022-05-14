@@ -1,0 +1,18 @@
+---
+apiVersion: skaffold/v2beta26
+kind: Config
+build:
+  artifacts:
+    - image: gotemplate
+      context: ./..
+      ko:
+        dependencies:
+          paths:
+            - "*.go"
+            - "config-demo.yaml"
+          ignore:
+            - "*_test.go"
+deploy:
+  kubectl:
+    manifests:
+      - "kube/*"
