@@ -8,7 +8,7 @@ require (
 	github.com/go-ozzo/ozzo-validation/v4 v4.3.0
 	github.com/gowon-irc/go-gowon v0.0.0-20211129183802-c73579a30a59
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/stretchr/testify v1.7.3
+	github.com/stretchr/testify v1.7.4
 	gopkg.in/yaml.v2 v2.4.0
 )
 
