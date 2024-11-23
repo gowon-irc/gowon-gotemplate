@@ -9,7 +9,7 @@ require (
 	github.com/gowon-irc/go-gowon v0.0.0-20220719115350-ec869e1addf7
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/stretchr/testify v1.10.0
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v2 v2.2.2
 	gopkg.in/yaml.v3 v3.0.1
 )
 
